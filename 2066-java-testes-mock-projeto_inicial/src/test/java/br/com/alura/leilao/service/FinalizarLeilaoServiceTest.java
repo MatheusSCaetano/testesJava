@@ -25,11 +25,14 @@ class FinalizarLeilaoServiceTest {
 	
 	@Mock
 	private LeilaoDao leilaoDao;
+	
+	@Mock
+	private EnviadorDeEmails enviador;
 		
 	@BeforeEach
 	public void beforeEach() {
 		MockitoAnnotations.initMocks(this);
-		this.service = new FinalizarLeilaoService(leilaoDao);
+		this.service = new FinalizarLeilaoService(leilaoDao, enviador);
 	}
 	
 	@Test
@@ -48,6 +51,41 @@ class FinalizarLeilaoServiceTest {
 		assertEquals(new BigDecimal("900"), leilao.getLanceVencedor().getValor());
 		
 		Mockito.verify(leilaoDao).salvar(leilao);
+		
+	}
+	
+	@Test
+	void deveriaEnviarEmailParaVencedorDoLeilao() {
+		List<Leilao> leiloes = leiloes();
+		
+		//tratando retorno do leiloes expirados do leiloesdao dentro do service para realizar os testes
+		Mockito.when(leilaoDao.buscarLeiloesExpirados()).thenReturn(leiloes);
+		
+		service.finalizarLeiloesExpirados();
+		
+		Leilao leilao = leiloes.get(0);
+		Lance lanceVencedor =  leilao.getLanceVencedor();
+		
+		
+		Mockito.verify(enviador).enviarEmailVencedorLeilao(lanceVencedor);
+	}
+
+	@Test
+	void naoDeveriaEnviarEmailParaVencedorDoLeilaoEmCasoDeErroAoSalvarOLeilao() {
+		List<Leilao> leiloes = leiloes();
+		
+		//tratando retorno do leiloes expirados do leiloesdao dentro do service para realizar os testes
+		Mockito.when(leilaoDao.buscarLeiloesExpirados()).thenReturn(leiloes);
+		
+		//quando chamar o metodo salvar, independente do parametro passado ele vai lançar uma Exception para o metodo salvar()
+		Mockito.when(leilaoDao.salvar(Mockito.any())).thenThrow(RuntimeException.class);
+		
+		try {
+			service.finalizarLeiloesExpirados();
+			//verifica se não teve interação com o mock do enviadorDeEmails
+			Mockito.verifyNoInteractions(enviador);
+			
+		} catch (Exception e) {	}
 		
 	}
 	

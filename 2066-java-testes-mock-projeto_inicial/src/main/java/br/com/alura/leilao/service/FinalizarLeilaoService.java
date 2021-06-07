@@ -14,11 +14,14 @@ import br.com.alura.leilao.model.Leilao;
 public class FinalizarLeilaoService {
 
 	private LeilaoDao leiloes;
+	
+	private EnviadorDeEmails enviador;
 
 	//como tem teste automatizado a injeção de dependencia deve ser realizado pelo construtor da classe
 	@Autowired
-	public FinalizarLeilaoService(LeilaoDao leiloes) {
+	public FinalizarLeilaoService(LeilaoDao leiloes, EnviadorDeEmails enviador) {
 		this.leiloes = leiloes;
+		this.enviador = enviador;
 	}
 
 	public void finalizarLeiloesExpirados() {
@@ -28,6 +31,8 @@ public class FinalizarLeilaoService {
 			leilao.setLanceVencedor(maiorLance);
 			leilao.fechar();
 			leiloes.salvar(leilao);
+			
+			enviador.enviarEmailVencedorLeilao(maiorLance);
 		});
 	}
 
